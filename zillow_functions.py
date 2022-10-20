@@ -32,13 +32,37 @@ def get_average_homeprice(in_df, in_name):
     in_df[f'yr_avg_{in_name}'] = in_df.mean(axis=1, numeric_only=True)
     return in_df
 
-def clean_iterable_dataframe(in_df, filter_columns, sel_date_cols, date_cols_rename, cat_name):
+def clean_df_month_cols(in_df, filter_columns, sel_date_cols, date_cols_rename, cat_name):
     return (in_df
             [filter_columns]
             .rename(dict(zip(sel_date_cols,date_cols_rename)), axis='columns')
             .pipe(get_average_homeprice, cat_name)
             .astype({'RegionName':'category', 'StateName':'category'})
         )
+
+def get_zillow_dataframe(in_year, geo, query, hometype_name):
+    """ in_year: str, (2018,2019,2020,2021,2022)
+        geo: str, (county, state)
+        query: str, ('sfrcondo', 'sfr', 'condo')
+        hometype_name: str, ('combined', 'home', 'condo')
+    """
+    csv_url = f"https://files.zillowstatic.com/research/public_csvs/zhvi/{geo.title()}_zhvi_uc_{query}_tier_0.33_0.67_sm_sa_month.csv"
+    df = pd.read_csv(csv_url)
+
+    date_cols = [column for column in df.columns if in_year in column]
+    if geo.lower() == 'state':
+        filter_cols = ['RegionID', 'RegionName', 'StateName', *date_cols]
+    else:
+        df = create_countyFIPs_code(df)
+        filter_cols = ['RegionID', 'RegionName', 'StateName', 
+                        'StateCodeFIPS', 'MunicipalCodeFIPS', 'County_FIPS', *date_cols]
+
+    date_cols_renamed = [f'{datetime.strptime(col, "%Y-%m-%d").strftime("%B")}_{hometype_name}' 
+                            for col in date_cols]
+
+    df = clean_df_month_cols(df, filter_cols, date_cols, date_cols_renamed, hometype_name)
+
+    return convert_float_to_int(df)
 
 def create_countyFIPs_code(in_df):
     return (in_df
@@ -121,8 +145,8 @@ def create_folium_map(in_gdf, in_geom, in_year, in_hometype, id_field):
     choropleth.geojson.add_child(tooltip)
     return mymap
 
-def get_top_or_bot10_state_records(in_hometype, in_df, true_or_false):
-    """False is top, True is bottom"""
+def get_top10_state_records(in_hometype, in_df, top=True):
+    """top is true by default, if False, return the bot 10 results"""
     yr_avg = f'yr_avg_{in_hometype}'
     return (in_df
                 .sort_values(yr_avg, ascending=true_or_false)[:10]
@@ -218,28 +242,6 @@ def get_monthly_chart(in_df, in_hometype, in_year):
             color_discrete_sequence=["#0083B8"] * len(avg_month_df),
             template="plotly_white",
     )
-
-def get_zillow_dataframe(in_year, geo, query, hometype_name):
-    """Passes in year to query, geo, and hometype to create dataframe. 
-        geo_type is a string of either
-        'county' or 'state'  """
-    csv_url = f"https://files.zillowstatic.com/research/public_csvs/zhvi/{geo.title()}_zhvi_uc_{query}_tier_0.33_0.67_sm_sa_month.csv"
-    df = pd.read_csv(csv_url)
-
-    date_cols = [column for column in df.columns if in_year in column]
-    if geo.lower() == 'state':
-        filter_cols = ['RegionID', 'RegionName', 'StateName', *date_cols]
-    else:
-        df = create_countyFIPs_code(df)
-        filter_cols = ['RegionID', 'RegionName', 'StateName', 
-                        'StateCodeFIPS', 'MunicipalCodeFIPS', 'County_FIPS', *date_cols]
-
-    date_cols_renamed = [f'{datetime.strptime(col, "%Y-%m-%d").strftime("%B")}_{hometype_name}' 
-                            for col in date_cols]
-
-    df = clean_iterable_dataframe(df, filter_cols, date_cols, date_cols_renamed, hometype_name)
-
-    return convert_float_to_int(df)
 
 def get_list_columns(in_df):
     return in_df.columns.values.tolist()
