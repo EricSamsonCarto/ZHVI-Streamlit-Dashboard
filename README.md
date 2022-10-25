@@ -10,6 +10,10 @@ This application allows you to query Zillow's ZHVI dataset by:<br>
 <b> All within a streamlit dashboard. </b> <br>
 <img src="/examples/example_gif.gif" width="60%"/>
 
+<h3>View App Online</h3> 
+
+<a href='https://zillowrealestateprices.streamlitapp.com/'>Live Streamlit App</a>
+
 <h3>Launch Locally</h3> 
 
 ```bash
