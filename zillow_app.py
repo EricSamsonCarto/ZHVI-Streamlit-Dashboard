@@ -5,7 +5,7 @@ from zillow_functions import *
 st.set_page_config(page_title="Real Estate Dashboard", page_icon=":bar_chart:", layout="centered")
 st.markdown("<h1 style='color: black;'>Real Estate Dashboard</h1>", unsafe_allow_html=True)
 st.markdown("<h3 style='color: black;'>Average ZHVI <a href='https://www.zillow.com/research/data/'>(Zillow Combined Home Value Index)<a></h3>", unsafe_allow_html=True)
-st.markdown("Written by <a href='EricSamson.com'>Eric Samson</a>", unsafe_allow_html=True)
+st.markdown("Written by <a href='https://ericsamson.com/'>Eric Samson</a>", unsafe_allow_html=True)
 
 # User Inputs
 form = st.sidebar.form(key='my_form')
