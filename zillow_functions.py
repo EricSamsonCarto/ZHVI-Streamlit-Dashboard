@@ -155,8 +155,8 @@ def get_top10_state_records(in_hometype, in_df, top=True):
 
 def get_state_charts(in_hometype, in_df, in_year):
 
-    top_ten_states = get_top_or_bot10_state_records(in_hometype, in_df, False)
-    bot_ten_states = get_top_or_bot10_state_records(in_hometype, in_df, True)
+    top_ten_states = get_top10_state_records(in_hometype, in_df, False)
+    bot_ten_states = get_top10_state_records(in_hometype, in_df, True)
 
     fig_top_states = px.bar(
         top_ten_states,
