@@ -146,10 +146,13 @@ def create_folium_map(in_gdf, in_geom, in_year, in_hometype, id_field):
     return mymap
 
 def get_top10_state_records(in_hometype, in_df, top=True):
-    """top is true by default, if False, return the bot 10 results"""
+    """top is true by default, and will return the top ten state records 
+        if top is False, it will return the bot 10 results"""
+    if top:
+        top = not top
     yr_avg = f'yr_avg_{in_hometype}'
     return (in_df
-                .sort_values(yr_avg, ascending=true_or_false)[:10]
+                .sort_values(yr_avg, ascending=top)[:10]
                 .rename(columns={'NAME': "State_Name", yr_avg: "Average_Price"})
             )[["State_Name", "Average_Price"]]
 
@@ -180,19 +183,22 @@ def get_state_charts(in_hometype, in_df, in_year):
 
     return fig_top_states, fig_bot_states
 
-def get_top_or_bot10_county_records(in_hometype, in_df, true_or_false):
-    """False is top, True is bottom"""
+def get_top10_county_records(in_hometype, in_df, top=True):
+    """top is true by default, and will return the top ten state records 
+        if top is False, it will return the bot 10 results"""
+    if top:
+        top = not top
     yr_avg = f'yr_avg_{in_hometype}'
     return (in_df
-                .sort_values(yr_avg, ascending=true_or_false)[:10]
+                .sort_values(yr_avg, ascending=top)[:10]
                 .assign(County_Name=in_df.RegionName.astype(str) + ', ' + in_df.StateName.astype(str))
                 .rename(columns={yr_avg: "Average_Price"})
             )[["County_Name", "Average_Price"]]
 
 def get_county_charts(in_hometype, in_df, in_year):
 
-    top_ten_counties = get_top_or_bot10_county_records(in_hometype, in_df, False)
-    bot_ten_counties = get_top_or_bot10_county_records(in_hometype, in_df, True)
+    top_ten_counties = get_top10_county_records(in_hometype, in_df, True)
+    bot_ten_counties = get_top10_county_records(in_hometype, in_df, False)
 
     fig_top_counties = px.bar(
         top_ten_counties,
