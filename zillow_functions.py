@@ -39,6 +39,7 @@ def get_average_homeprice(in_df, in_name):
     in_df[f'yr_avg_{in_name}'] = in_df.mean(axis=1, numeric_only=True)
     return in_df
 
+
 def clean_df_month_cols(in_df, filter_columns, sel_date_cols, date_cols_rename, cat_name):
     return (in_df
             [filter_columns]
@@ -46,6 +47,7 @@ def clean_df_month_cols(in_df, filter_columns, sel_date_cols, date_cols_rename, 
             .pipe(get_average_homeprice, cat_name)
             .astype({'RegionName':'category', 'StateName':'category'})
         )
+
 
 def get_zillow_dataframe(in_year, geo, query, hometype_name):
     """ in_year: str, (2018,2019,2020,2021,2022)
@@ -72,6 +74,7 @@ def get_zillow_dataframe(in_year, geo, query, hometype_name):
 
     return convert_float_to_int(df)
 
+
 def create_countyFIPs_code(in_df):
     return (in_df
             .assign(
@@ -79,6 +82,7 @@ def create_countyFIPs_code(in_df):
                 + in_df['MunicipalCodeFIPS'].astype(str).str.zfill(3)
             )
         )
+
 
 def create_folium_map(in_gdf, in_geom, in_year, in_hometype, id_field):
     geom_type = 'State' if in_geom.lower() == 'state' else 'County'
@@ -152,6 +156,7 @@ def create_folium_map(in_gdf, in_geom, in_year, in_hometype, id_field):
     choropleth.geojson.add_child(tooltip)
     return mymap
 
+
 def get_top10_state_records(in_hometype, in_df, top=True):
     """top is true by default, and will return the top ten state records
         if top is False, it will return the bot 10 results"""
@@ -162,6 +167,7 @@ def get_top10_state_records(in_hometype, in_df, top=True):
                 .sort_values(yr_avg, ascending=top)[:10]
                 .rename(columns={'NAME': "State_Name", yr_avg: "Average_Price"})
             )[["State_Name", "Average_Price"]]
+
 
 def get_state_charts(in_hometype, in_df, in_year):
 
@@ -190,6 +196,7 @@ def get_state_charts(in_hometype, in_df, in_year):
 
     return fig_top_states, fig_bot_states
 
+
 def get_top10_county_records(in_hometype, in_df, top=True):
     """top is true by default, and will return the top ten state records
         if top is False, it will return the bot 10 results"""
@@ -202,6 +209,7 @@ def get_top10_county_records(in_hometype, in_df, top=True):
                         in_df.RegionName.astype(str) + ', ' + in_df.StateName.astype(str))
                 .rename(columns={yr_avg: "Average_Price"})
             )[["County_Name", "Average_Price"]]
+
 
 def get_county_charts(in_hometype, in_df, in_year):
 
@@ -229,6 +237,7 @@ def get_county_charts(in_hometype, in_df, in_year):
     )
 
     return fig_top_counties, fig_bot_counties
+
 
 def get_monthly_chart(in_df, in_hometype, in_year):
     month_cols_list = [x for x in in_df.columns.to_list()
@@ -258,6 +267,8 @@ def get_monthly_chart(in_df, in_hometype, in_year):
             template="plotly_white",
     )
 
+
 def get_list_columns(in_df):
     """Returns a list of column names from an input df"""
     return in_df.columns.values.tolist()
+
