@@ -1,19 +1,24 @@
-import folium
-import pandas as pd
-import streamlit as st
-import geopandas as gpd
-import plotly.express as px
+"""Functions to grab ZHVI data from zillow, create charts and graphs"""
 
-from numpy import floor, NaN
-from datetime import datetime
 from calendar import month_name
-from streamlit_folium import st_folium, folium_static
+from datetime import datetime
+
+import folium
+import geopandas as gpd
+import pandas as pd
+import plotly.express as px
+import streamlit as st
+from numpy import floor
+from streamlit_folium import folium_static, st_folium
+
 
 def convert_float_to_int(in_df):
+    """Converts float columns to Int64 columns"""
     float_cols = in_df.select_dtypes(include=['float64'])
     for col in float_cols.columns.values:
         in_df[col] = floor(pd.to_numeric(in_df[col], errors='coerce')).astype('Int64')
     return in_df
+
 
 def join_fields(og_df, source_df, og_key, source_key, columns):
     '''join fields from one dataframe(source_df) to the original(og_df)'''
@@ -28,7 +33,9 @@ def join_fields(og_df, source_df, og_key, source_key, columns):
 
     return pd.merge(og_df, source_df[columns], left_on=og_key, right_on=source_key, how='left')
 
+
 def get_average_homeprice(in_df, in_name):
+    """Creates a column with the average homeprice for the current hometype"""
     in_df[f'yr_avg_{in_name}'] = in_df.mean(axis=1, numeric_only=True)
     return in_df
 
@@ -46,7 +53,8 @@ def get_zillow_dataframe(in_year, geo, query, hometype_name):
         query: str, ('sfrcondo', 'sfr', 'condo')
         hometype_name: str, ('combined', 'home', 'condo')
     """
-    csv_url = f"https://files.zillowstatic.com/research/public_csvs/zhvi/{geo.title()}_zhvi_uc_{query}_tier_0.33_0.67_sm_sa_month.csv"
+    csv_url = ("https://files.zillowstatic.com/research/public_csvs/zhvi/"
+                f"{geo.title()}_zhvi_uc_{query}_tier_0.33_0.67_sm_sa_month.csv")
     df = pd.read_csv(csv_url)
 
     date_cols = [column for column in df.columns if in_year in column]
@@ -54,11 +62,11 @@ def get_zillow_dataframe(in_year, geo, query, hometype_name):
         filter_cols = ['RegionID', 'RegionName', 'StateName', *date_cols]
     else:
         df = create_countyFIPs_code(df)
-        filter_cols = ['RegionID', 'RegionName', 'StateName', 
+        filter_cols = ['RegionID', 'RegionName', 'StateName',
                         'StateCodeFIPS', 'MunicipalCodeFIPS', 'County_FIPS', *date_cols]
 
-    date_cols_renamed = [f'{datetime.strptime(col, "%Y-%m-%d").strftime("%B")}_{hometype_name}' 
-                            for col in date_cols]
+    date_cols_renamed = [f'{datetime.strptime(col, "%Y-%m-%d").strftime("%B")}_{hometype_name}'
+                        for col in date_cols]
 
     df = clean_df_month_cols(df, filter_cols, date_cols, date_cols_renamed, hometype_name)
 
@@ -67,17 +75,16 @@ def get_zillow_dataframe(in_year, geo, query, hometype_name):
 def create_countyFIPs_code(in_df):
     return (in_df
             .assign(
-                County_FIPS = in_df['StateCodeFIPS'].astype(str).str.zfill(2) 
+                County_FIPS = in_df['StateCodeFIPS'].astype(str).str.zfill(2)
                 + in_df['MunicipalCodeFIPS'].astype(str).str.zfill(3)
             )
         )
 
 def create_folium_map(in_gdf, in_geom, in_year, in_hometype, id_field):
-    display_name = 'NAME' if in_geom.lower() == 'state' else 'RegionName'
     geom_type = 'State' if in_geom.lower() == 'state' else 'County'
 
     mymap = folium.Map(
-        location=[39.817999, -95.693616], 
+        location=[39.817999, -95.693616],
         zoom_start=4,
         tiles=None
     )
@@ -94,7 +101,7 @@ def create_folium_map(in_gdf, in_geom, in_year, in_hometype, id_field):
         in_gdf["temp_yr_avg"] = in_gdf[yr_avg]
         temp_gdf = in_gdf.query("temp_yr_avg == temp_yr_avg")
         myscale = (temp_gdf["temp_yr_avg"].quantile((0,0.2,0.4,0.5,0.7,0.8,0.98,1))).tolist()
-        
+
         in_gdf[yr_avg] = in_gdf[yr_avg].astype('float64')
 
         choropleth = folium.Choropleth(
@@ -116,7 +123,7 @@ def create_folium_map(in_gdf, in_geom, in_year, in_hometype, id_field):
         for key in choropleth._children:
             if key.startswith('color_map'):
                 del(choropleth._children[key])
-        
+
         choropleth.add_to(mymap)
 
     else:
@@ -135,7 +142,7 @@ def create_folium_map(in_gdf, in_geom, in_year, in_hometype, id_field):
         ).add_to(mymap)
 
     tooltip = folium.features.GeoJsonTooltip(
-        fields=["RegionName", yr_avg], 
+        fields=["RegionName", yr_avg],
         aliases=[f"{geom_type.title()}:", "Avg ZHVI:"],
         labels=True,
         stick=False,
@@ -146,7 +153,7 @@ def create_folium_map(in_gdf, in_geom, in_year, in_hometype, id_field):
     return mymap
 
 def get_top10_state_records(in_hometype, in_df, top=True):
-    """top is true by default, and will return the top ten state records 
+    """top is true by default, and will return the top ten state records
         if top is False, it will return the bot 10 results"""
     if top:
         top = not top
@@ -184,14 +191,15 @@ def get_state_charts(in_hometype, in_df, in_year):
     return fig_top_states, fig_bot_states
 
 def get_top10_county_records(in_hometype, in_df, top=True):
-    """top is true by default, and will return the top ten state records 
+    """top is true by default, and will return the top ten state records
         if top is False, it will return the bot 10 results"""
     if top:
         top = not top
     yr_avg = f'yr_avg_{in_hometype}'
     return (in_df
                 .sort_values(yr_avg, ascending=top)[:10]
-                .assign(County_Name=in_df.RegionName.astype(str) + ', ' + in_df.StateName.astype(str))
+                .assign(County_Name=
+                        in_df.RegionName.astype(str) + ', ' + in_df.StateName.astype(str))
                 .rename(columns={yr_avg: "Average_Price"})
             )[["County_Name", "Average_Price"]]
 
@@ -223,7 +231,8 @@ def get_county_charts(in_hometype, in_df, in_year):
     return fig_top_counties, fig_bot_counties
 
 def get_monthly_chart(in_df, in_hometype, in_year):
-    month_cols_list = [x for x in in_df.columns.to_list() if f"_{in_hometype}" in x and "yr_avg" not in x]
+    month_cols_list = [x for x in in_df.columns.to_list()
+                        if f"_{in_hometype}" in x and "yr_avg" not in x]
     month_name_list = [x.replace(f"_{in_hometype}", '') for x in month_cols_list]
     month_lookup = list(month_name)
     month_sorted = sorted(month_name_list, key=month_lookup.index)
@@ -250,4 +259,5 @@ def get_monthly_chart(in_df, in_hometype, in_year):
     )
 
 def get_list_columns(in_df):
+    """Returns a list of column names from an input df"""
     return in_df.columns.values.tolist()
